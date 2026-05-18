@@ -31,6 +31,12 @@ async function run() {
     const db = client.db('tutordb')
     const tutorDataCollection = db.collection('tutorData')
 
+    app.get('/tutors', async(req, res)=> {
+        const cursor = tutorDataCollection.find()
+        const result = await cursor.toArray()
+        res.send(result)
+    })
+
     
     
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
