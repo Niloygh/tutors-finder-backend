@@ -37,6 +37,12 @@ async function run() {
         res.send(result)
     })
 
+    app.get('/limit-tutors', async(req, res)=> {
+        const cursor = tutorDataCollection.find().limit(6)
+        const result = await cursor.toArray()
+        res.send(result)
+    })
+
     
     
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
