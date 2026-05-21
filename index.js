@@ -1,3 +1,5 @@
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+
 const express = require('express')
 const app = express()
 const port = process.env.PORT || 8000
@@ -8,7 +10,6 @@ app.use(cors())
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = process.env.MONGODB_URI
 
 
@@ -43,6 +44,14 @@ async function run() {
         res.send(result)
     })
 
+    app.get('/tutors/:tutorsId', async(req, res)=>{
+      const {tutorsId} = req.params
+      // console.log(tutorsId)
+      const query = { _id: new ObjectId(tutorsId) }
+      const result = await tutorDataCollection.findOne(query)
+      res.send(result)
+
+    })
     
     
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
