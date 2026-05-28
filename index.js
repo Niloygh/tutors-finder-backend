@@ -41,7 +41,7 @@ const verifyToken = async (req, res, next) => {
 
   try {
     const JWKS = createRemoteJWKSet(
-      new URL('http://localhost:3000/api/auth/jwks')
+      new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
     )
     const { payload } = await jwtVerify(token, JWKS)
     // console.log(payload)
@@ -109,7 +109,7 @@ async function run() {
       res.send(result)
     })
 
-   app.patch('/enrollments/:courseId', verifyToken, async (req, res) => {
+   app.patch('/enrollment/:courseId', verifyToken, async (req, res) => {
       //   console.log('from enrollment');
 
       const { courseId } = req.params;
