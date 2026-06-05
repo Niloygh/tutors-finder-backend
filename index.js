@@ -11,7 +11,6 @@ app.use(cors())
 app.use(express.json())
 
 
-
 const uri = process.env.MONGODB_URI
 
 
@@ -32,6 +31,9 @@ const client = new MongoClient(uri, {
 
 const verifyToken = async (req, res, next) => {
   const { authorization } = req.headers;
+
+  // console.log(authorization)
+  
   const token = authorization?.split(' ')[1]
   // console.log(token)
 
@@ -46,9 +48,9 @@ const verifyToken = async (req, res, next) => {
     const { payload } = await jwtVerify(token, JWKS)
     // console.log(payload)
     req.user = payload
-    console.log(req.user)
+    // console.log(req.user)
 
-      next()
+    next()
   } catch (error) {
     console.error('Token validation failed:', error)
     return res.status(401).json({ message: "unauthorize" })
@@ -69,39 +71,42 @@ async function run() {
     const db = client.db('tutordb')
     const tutorDataCollection = db.collection('tutorData')
     const enrollmentCollection = db.collection('enrollments')
-    
+
 
 
     app.get('/tutors', async (req, res) => {
 
-      const {search} = req.query;
+      const { search } = req.query;
       let cursor;
-      if(search){
-        cursor =  tutorDataCollection.find({name: search})
-      }else{
+      if (search) {
+        cursor = tutorDataCollection.find({ name: search })
+      } else {
         cursor = tutorDataCollection.find()
       }
-      
+
       const result = await cursor.toArray()
-      console.log(result)
-      
+      // console.log(result)
+
       res.send(result)
     })
 
 
-    app.post('/tutors', async(req, res) =>{
+    app.post('/tutors', async (req, res) => {
       const newTutors = req.body
-      console.log(newTutors)
-      
+      // console.log(newTutors)
+      const result = await tutorDataCollection.insertOne(newTutors)
+      res.send(result)
+
+
     })
-    
+
     app.get('/limit-tutors', async (req, res) => {
       const cursor = tutorDataCollection.find().limit(6)
       const result = await cursor.toArray()
       res.send(result)
     })
 
-    app.get('/tutors/:tutorsId',  async (req, res) => {
+    app.get('/tutors/:tutorsId', async (req, res) => {
       const { tutorsId } = req.params
       // console.log(tutorsId)
       const query = { _id: new ObjectId(tutorsId) }
@@ -109,19 +114,26 @@ async function run() {
       res.send(result)
     })
 
-   app.patch('/enrollment/:courseId', verifyToken, async (req, res) => {
-      //   console.log('from enrollment');
 
-      const { courseId } = req.params;
+    app.get('/enrollment/:userId', verifyToken, async(req, res)=> {
+      const {userId} = req.params
+      const result = await enrollmentCollection.find({userId: userId}).toArray()
+      res.send(result)
+    })
+    
+    app.patch('/enrollment/:tutorsId', verifyToken, async (req, res) => {
+        // console.log('from enrollment');
+
+      const { tutorsId } = req.params;
       const enrollmentData = req.body;
 
-      const course = await tutorDataCollection.findOne({ _id: new ObjectId(courseId) });
+      const course = await tutorDataCollection.findOne({ _id: new ObjectId(tutorsId) });
 
       if (!course) {
         return res.status(404).json({ message: 'Course not found' });
       }
       await tutorDataCollection.updateOne(
-        { _id: new ObjectId(courseId) },
+        { _id: new ObjectId(tutorsId) },
         {
           $inc: { enrollCount: 1 },
           $set: {
@@ -140,7 +152,7 @@ async function run() {
     });
 
 
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
