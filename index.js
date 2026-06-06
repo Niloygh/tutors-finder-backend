@@ -33,7 +33,7 @@ const verifyToken = async (req, res, next) => {
   const { authorization } = req.headers;
 
   // console.log(authorization)
-  
+
   const token = authorization?.split(' ')[1]
   // console.log(token)
 
@@ -115,41 +115,92 @@ async function run() {
     })
 
 
-    app.get('/enrollment/:userId', verifyToken, async(req, res)=> {
-      const {userId} = req.params
-      const result = await enrollmentCollection.find({userId: userId}).toArray()
+    app.get('/enrollment/:userId', verifyToken, async (req, res) => {
+      const { userId } = req.params
+      const result = await enrollmentCollection.find({ userId: userId }).toArray()
       res.send(result)
     })
-    
-    app.patch('/enrollment/:tutorsId', verifyToken, async (req, res) => {
-        // console.log('from enrollment');
 
+
+
+    app.patch('/enrollment/:tutorsId', verifyToken, async (req, res) => {
       const { tutorsId } = req.params;
       const enrollmentData = req.body;
 
-      const course = await tutorDataCollection.findOne({ _id: new ObjectId(tutorsId) });
+      // console.log("Tutor ID:", tutorsId);
+      // console.log("Enrollment Data:", enrollmentData)
 
-      if (!course) {
-        return res.status(404).json({ message: 'Course not found' });
+      const tutor = await tutorDataCollection.findOne({
+        _id: new ObjectId(tutorsId),
+      });
+      // console.log("Tutor Found:", tutor)
+
+      if (!tutor) {
+        return res.status(404).json({
+          success: false,
+          message: "Tutor not found",
+        });
       }
+
+      if (tutor.remaining_slot <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No slots available",
+        });
+      }
+
+      // duplicate booking check
+      const alreadyBooked = await enrollmentCollection.findOne({
+        userId: enrollmentData.userId,
+        tutorName: enrollmentData.tutorName,
+      });
+
+      if (alreadyBooked) {
+        return res.status(400).json({
+          success: false,
+          message: "You already booked this tutor",
+        });
+      }
+
+      await enrollmentCollection.insertOne({
+        ...enrollmentData,
+        status: "active",
+        enrolledAt: new Date(),
+      });
+
       await tutorDataCollection.updateOne(
         { _id: new ObjectId(tutorsId) },
         {
-          $inc: { enrollCount: 1 },
+          $inc: {
+            remaining_slot: -1,
+          },
           $set: {
             lastEnrolledAt: new Date(),
           },
         }
       );
-      //   console.log(enrollmentData);
 
-      const result = await enrollmentCollection.insertOne({
-        ...enrollmentData,
-        enrolledAt: new Date(),
+      res.send({
+        success: true,
+        message: "Booking successful",
       });
+    });
+
+    app.patch('/enrollment/cancel/:id',async (req, res) => {
+      const { id } = req.params;
+
+      const result = await enrollmentCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            status: "Cancelled"
+          }
+        }
+      );
 
       res.send(result);
     });
+
 
 
     // console.log("Pinged your deployment. You successfully connected to MongoDB!");
