@@ -79,7 +79,10 @@ async function run() {
       const { search } = req.query;
       let cursor;
       if (search) {
-        cursor = tutorDataCollection.find({ name: search })
+        cursor = tutorDataCollection.find({ name: {
+          $regex: search,
+          $options: 'i'
+        } })
       } else {
         cursor = tutorDataCollection.find()
       }
@@ -94,7 +97,10 @@ async function run() {
     app.post('/tutors', async (req, res) => {
       const newTutors = req.body
       // console.log(newTutors)
-      const result = await tutorDataCollection.insertOne(newTutors)
+      const result = await tutorDataCollection.insertOne({
+        ...newTutors,
+        regDate: new Date(),
+      });
       res.send(result)
 
 
@@ -186,7 +192,7 @@ async function run() {
       });
     });
 
-    app.patch('/enrollment/cancel/:id',async (req, res) => {
+    app.patch('/enrollment/cancel/:id', async (req, res) => {
       const { id } = req.params;
 
       const result = await enrollmentCollection.updateOne(
@@ -197,6 +203,17 @@ async function run() {
           }
         }
       );
+
+      res.send(result);
+    });
+    
+
+    app.delete('/tutors/:id', async (req, res) => {
+      const { id } = req.params;
+
+      const result = await tutorDataCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
 
       res.send(result);
     });
