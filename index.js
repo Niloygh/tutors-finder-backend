@@ -76,16 +76,37 @@ async function run() {
 
     app.get('/tutors', async (req, res) => {
 
-      const { search } = req.query;
+      const { search, startDate, endDate } = req.query;
+
+
+
+      console.log(search)
       let cursor;
       if (search) {
-        cursor = tutorDataCollection.find({ name: {
-          $regex: search,
-          $options: 'i'
-        } })
+        cursor = tutorDataCollection.find({
+          name: {
+            $regex: search,
+            $options: 'i'
+          }
+        })
       } else {
         cursor = tutorDataCollection.find()
       }
+
+      if (startDate && endDate) {
+        cursor = tutorDataCollection.find({
+          session_start_date: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate),
+          }
+        })
+
+        // filter.createdAt = {
+        //   $gte: new Date(startDate),
+        //   $lte: new Date(endDate),
+        // };
+      }
+      console.log(startDate, endDate)
 
       const result = await cursor.toArray()
       // console.log(result)
@@ -94,12 +115,28 @@ async function run() {
     })
 
 
+    // email verify
+    app.get('/myTutors', async (req, res) => {
+
+      const { email } = req.query
+      const query = { userEmail: email }
+      const result = await tutorDataCollection.find(query).toArray()
+
+      res.send(result)
+
+    })
+
+
+
+
+
     app.post('/tutors', async (req, res) => {
       const newTutors = req.body
       // console.log(newTutors)
       const result = await tutorDataCollection.insertOne({
         ...newTutors,
         regDate: new Date(),
+        session_start_date: new Date(newTutors.session_start_date)
       });
       res.send(result)
 
@@ -192,6 +229,20 @@ async function run() {
       });
     });
 
+    app.patch('/tutor/dataUp/:id', async (req, res) => {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      const result = await tutorDataCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: updateData,
+        }
+      );
+
+      res.send(result);
+    });
+
     app.patch('/enrollment/cancel/:id', async (req, res) => {
       const { id } = req.params;
 
@@ -206,7 +257,7 @@ async function run() {
 
       res.send(result);
     });
-    
+
 
     app.delete('/tutors/:id', async (req, res) => {
       const { id } = req.params;
