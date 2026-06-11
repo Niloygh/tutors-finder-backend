@@ -169,6 +169,15 @@ async function run() {
     app.patch('/enrollment/:tutorsId', verifyToken, async (req, res) => {
       const { tutorsId } = req.params;
       const enrollmentData = req.body;
+      const currentDate = new Date();
+      const sessionDate = new Date(enrollmentData.session_start_date);
+
+      if (currentDate > sessionDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Date Over'
+        });
+      }
 
       // console.log("Tutor ID:", tutorsId);
       // console.log("Enrollment Data:", enrollmentData)
